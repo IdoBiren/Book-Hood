@@ -64,43 +64,69 @@ export default function Home() {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="glass-card flex flex-col md:flex-row gap-3" style={{ padding: '0.75rem 1rem', background: 'var(--surface-color)', display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="flex flex-col mb-8">
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          background: 'var(--surface-color)', 
+          borderRadius: '100px', 
+          border: '1px solid var(--surface-border)', 
+          padding: '0.3rem 0.8rem', 
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          gap: '0.5rem',
+          flexWrap: 'wrap'
+        }}>
           
-          <div className="input-group" style={{ flex: '2 1 300px', margin: 0 }}>
-            <div className="flex items-center gap-2" style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', right: '12px', color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
-                className="input-field" 
-                placeholder="חיפוש חופשי..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ paddingRight: '2.2rem', paddingTop: '0.5rem', paddingBottom: '0.5rem', marginBottom: 0, fontSize: '0.95rem' }}
-              />
-            </div>
+          <div style={{ flex: '2 1 200px', position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search size={16} style={{ position: 'absolute', right: '12px', color: 'var(--text-muted)' }} />
+            <input 
+              type="text" 
+              placeholder="חיפוש חופשי..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ 
+                width: '100%', border: 'none', background: 'transparent', outline: 'none', 
+                padding: '0.5rem 2.2rem 0.5rem 0.5rem', fontSize: '1rem', color: 'var(--text-main)' 
+              }}
+            />
           </div>
           
-          <div className="flex gap-3" style={{ flex: '1 1 200px', width: '100%' }}>
-            <div className="input-group" style={{ flex: 1, margin: 0, position: 'relative' }}>
-              <Filter size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', zIndex: 1 }} />
-              <select className="input-field" value={selectedGenre} onChange={(e) => setSelectedGenre(e.target.value)} style={{ paddingRight: '2.2rem', paddingTop: '0.5rem', paddingBottom: '0.5rem', marginBottom: 0, cursor: 'pointer', fontSize: '0.95rem' }}>
-                <option value="">כל הקטגוריות</option>
-                {BOOK_GENRES.map(genre => (
-                  <option key={genre} value={genre}>{genre}</option>
-                ))}
-              </select>
-            </div>
+          <div style={{ width: '1px', height: '24px', background: 'var(--surface-border)', margin: '0 0.5rem' }} className="hidden-mobile"></div>
+          
+          <div style={{ flex: '1 1 120px', position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Filter size={16} style={{ position: 'absolute', right: '8px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <select 
+              value={selectedGenre} 
+              onChange={(e) => setSelectedGenre(e.target.value)} 
+              style={{ 
+                width: '100%', border: 'none', background: 'transparent', outline: 'none', cursor: 'pointer',
+                padding: '0.5rem 0.5rem 0.5rem 1.8rem', textIndent: '1.5rem', fontSize: '1rem', color: 'var(--text-main)', appearance: 'none'
+              }}
+            >
+              <option value="">כל הקטגוריות</option>
+              {BOOK_GENRES.map(genre => (
+                <option key={genre} value={genre}>{genre}</option>
+              ))}
+            </select>
+          </div>
 
-            <div className="input-group" style={{ flex: 1, margin: 0, position: 'relative' }}>
-              <ArrowUpDown size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', zIndex: 1 }} />
-              <select className="input-field" value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ paddingRight: '2.2rem', paddingTop: '0.5rem', paddingBottom: '0.5rem', marginBottom: 0, cursor: 'pointer', fontSize: '0.95rem' }}>
-                <option value="newest">הכי חדשים</option>
-                <option value="title-asc">א-ת (ספר)</option>
-                <option value="title-desc">ת-א (ספר)</option>
-                <option value="author-asc">א-ת (סופר)</option>
-              </select>
-            </div>
+          <div style={{ width: '1px', height: '24px', background: 'var(--surface-border)', margin: '0 0.5rem' }} className="hidden-mobile"></div>
+
+          <div style={{ flex: '1 1 120px', position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <ArrowUpDown size={16} style={{ position: 'absolute', right: '8px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <select 
+              value={sortBy} 
+              onChange={(e) => setSortBy(e.target.value)} 
+              style={{ 
+                width: '100%', border: 'none', background: 'transparent', outline: 'none', cursor: 'pointer',
+                padding: '0.5rem 0.5rem 0.5rem 1.8rem', textIndent: '1.5rem', fontSize: '1rem', color: 'var(--text-main)', appearance: 'none'
+              }}
+            >
+              <option value="newest">הכי חדשים</option>
+              <option value="title-asc">א-ת (ספר)</option>
+              <option value="title-desc">ת-א (ספר)</option>
+              <option value="author-asc">א-ת (סופר)</option>
+            </select>
           </div>
           
         </div>
