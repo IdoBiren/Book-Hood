@@ -14,6 +14,21 @@ export default function OnboardingModal() {
   const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const handlePhoneChange = (e) => {
+    // Remove all non-digit characters
+    const raw = e.target.value.replace(/\D/g, '');
+    // Limit to exactly 10 digits maximum
+    const limited = raw.slice(0, 10);
+    
+    // Auto-insert dash after the 3rd digit (Israeli format: 05X-XXXXXXX)
+    let formatted = limited;
+    if (limited.length > 3) {
+      formatted = `${limited.slice(0, 3)}-${limited.slice(3)}`;
+    }
+    
+    setPhone(formatted);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!displayName.trim() || !phone.trim()) return;
@@ -63,10 +78,14 @@ export default function OnboardingModal() {
                type="tel" 
                className="input-field" 
                value={phone} 
-               onChange={e => setPhone(e.target.value)} 
+               onChange={handlePhoneChange} 
                placeholder="05X-XXXXXXX" 
+               pattern="^05\d-\d{7}$"
+               title="יש להזין מספר פלאפון חוקי בן 10 ספרות (למשל: 050-1234567)"
+               maxLength={11}
                required 
                disabled={isSubmitting}
+               style={{ direction: 'ltr', textAlign: 'right' }}
              />
           </div>
           
