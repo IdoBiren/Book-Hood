@@ -64,7 +64,12 @@ export default function Home() {
         </div>
       )}
 
-      <div className="flex flex-col mb-8">
+      <div className="text-center mb-6 mt-4">
+        <h1 className="mb-4" style={{ fontSize: '2.5rem' }}>הספרים הזמינים בקהילה</h1>
+        <p className="text-muted" style={{ fontSize: '1.2rem' }}>מצאו ספרים מעניינים להשאלה מחברי הקהילה שלכם</p>
+      </div>
+
+      <div className="flex justify-center w-full mb-10">
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -74,7 +79,9 @@ export default function Home() {
           padding: '0.3rem 0.8rem', 
           boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
           gap: '0.5rem',
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',
+          maxWidth: '850px',
+          width: '100%'
         }}>
           
           <div style={{ flex: '2 1 200px', position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -130,11 +137,6 @@ export default function Home() {
           </div>
           
         </div>
-      </div>
-      
-      <div className="text-center mb-8">
-        <h1 className="mb-4" style={{ fontSize: '2.5rem' }}>הספרים הזמינים בקהילה</h1>
-        <p className="text-muted" style={{ fontSize: '1.2rem' }}>מצאו ספרים מעניינים להשאלה מחברי הקהילה שלכם</p>
       </div>
 
       {!currentUser ? (
