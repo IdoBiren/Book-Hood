@@ -49,49 +49,15 @@ export default function MyBooks() {
     
     setIsFetchingCover(true);
     try {
-      // 1. ננסה לשלוף מ"סימניה" (עובד מצוין לספרים בעברית)
-      const query = encodeURIComponent(bookData.title + (bookData.author ? ' ' + bookData.author : ''));
-      const simaniaUrl = `https://simania.co.il/searchBooks.php?query=${query}`;
-      
-      let htmlText = null;
-      try {
-        const response = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(simaniaUrl)}`);
-        htmlText = await response.text();
-      } catch (e) {
-        try {
-          const res2 = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(simaniaUrl)}`);
-          const data2 = await res2.json();
-          htmlText = data2.contents;
-        } catch (e2) {
-          console.log("Proxies failed", e2);
-        }
-      }
-      
-      if (htmlText) {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlText, 'text/html');
-        
-        const images = Array.from(doc.querySelectorAll('img'));
-        const coverImg = images.find(img => {
-          const src = img.getAttribute('src');
-          return src && (src.includes('bookimages') || src.includes('images/books'));
-        });
-        
-        if (coverImg) {
-          let imageUrl = coverImg.getAttribute('src');
-          if (!imageUrl.startsWith('http')) {
-            imageUrl = imageUrl.startsWith('/') ? `https://simania.co.il${imageUrl}` : `https://simania.co.il/${imageUrl}`;
-          }
-          setBookDataFn({ ...bookData, coverImage: imageUrl });
-          setIsFetchingCover(false);
-          return;
-        }
-      }
-      
-      // 2. גיבוי - גוגל ספרים
       let googleQuery = `intitle:${bookData.title}`;
       if (bookData.author) googleQuery += `+inauthor:${bookData.author}`;
       const googleResponse = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(googleQuery)}&maxResults=1`);
+      
+      if (googleResponse.status === 429) {
+        alert("גוגל חסמו אותנו זמנית בגלל יותר מדי בקשות (שגיאה 429). אנא נסה שוב בעוד מספר דקות, או הוסף קישור ידנית.");
+        return;
+      }
+      
       const googleData = await googleResponse.json();
       
       if (googleData.items && googleData.items.length > 0 && googleData.items[0].volumeInfo.imageLinks) {
@@ -99,7 +65,7 @@ export default function MyBooks() {
         imageUrl = imageUrl.replace('http:', 'https:');
         setBookDataFn({ ...bookData, coverImage: imageUrl });
       } else {
-        alert("לא מצאנו תמונה מתאימה לא בסימניה ולא בגוגל 😔. תוכל להוסיף קישור ידנית.");
+        alert("לא מצאנו תמונה מתאימה בגוגל 😔. תוכל להוסיף קישור ידנית.");
       }
     } catch (err) {
       console.error("Error fetching cover", err);
