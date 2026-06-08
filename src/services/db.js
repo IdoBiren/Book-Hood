@@ -91,6 +91,14 @@ export async function deleteBook(bookId) {
   await deleteDoc(doc(db, 'books', bookId));
 }
 
+export async function editBook(bookId, updatedData) {
+  if (!hasFirebaseConfig) {
+    mockBooks = mockBooks.map(b => b.id === bookId ? { ...b, ...updatedData } : b);
+    return;
+  }
+  await updateDoc(doc(db, 'books', bookId), updatedData);
+}
+
 export async function lendBook(bookId, borrowerName, dueDateStr) {
   if (!hasFirebaseConfig) {
     mockBooks = mockBooks.map(b => b.id === bookId ? { ...b, status: 'borrowed', borrowerName, dueDate: dueDateStr } : b);

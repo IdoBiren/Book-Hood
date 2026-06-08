@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { BookPlus, Trash2, Send, Undo2 } from 'lucide-react';
-import { getUserBooks, addBook, deleteBook, lendBook, returnBook, getAllUsers } from '../services/db';
+import { BookPlus, Trash2, Send, Undo2, Edit2 } from 'lucide-react';
+import { getUserBooks, addBook, deleteBook, editBook, lendBook, returnBook, getAllUsers } from '../services/db';
 import { BOOK_GENRES } from '../utils/constants';
 
 export default function MyBooks() {
@@ -13,6 +13,7 @@ export default function MyBooks() {
   const [loading, setLoading] = useState(true);
 
   const [newBook, setNewBook] = useState({ title: '', author: '', genre: '', coverImage: '' });
+  const [editingBook, setEditingBook] = useState(null);
   const [lendingBookId, setLendingBookId] = useState(null);
   const [borrowerNameInput, setBorrowerNameInput] = useState('');
 
@@ -69,6 +70,25 @@ export default function MyBooks() {
     } catch (err) {
       console.error("Error deleting book", err);
       alert('אירעה שגיאה במחיקת הספר.');
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingBook.title || !editingBook.author || !editingBook.genre) return;
+    
+    try {
+      await editBook(editingBook.id, {
+        title: editingBook.title,
+        author: editingBook.author,
+        genre: editingBook.genre,
+        coverImage: editingBook.coverImage
+      });
+      setBooks(books.map(b => b.id === editingBook.id ? { ...b, ...editingBook } : b));
+      setEditingBook(null);
+    } catch (err) {
+      console.error("Error editing book", err);
+      alert("אירעה שגיאה בעדכון הספר.");
     }
   };
 
@@ -207,15 +227,59 @@ export default function MyBooks() {
                           <Undo2 size={18} /> הוחזר
                         </button>
                       )}
-                      <button onClick={() => handleDelete(book.id)} className="btn btn-danger" style={{ padding: '0.6rem', fontSize: '1rem', width: '100%', justifyContent: 'center' }} title="מחק ספר מהמערכת">
-                        <Trash2 size={18} /> מחק
-                      </button>
+                      <div className="flex gap-2 w-full mt-1">
+                        <button onClick={() => setEditingBook(book)} className="btn btn-secondary" style={{ padding: '0.6rem', fontSize: '1rem', flex: 1, justifyContent: 'center' }} title="ערוך ספר">
+                          <Edit2 size={18} />
+                        </button>
+                        <button onClick={() => handleDelete(book.id)} className="btn btn-danger" style={{ padding: '0.6rem', fontSize: '1rem', flex: 1, justifyContent: 'center' }} title="מחק ספר מהמערכת">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* Editing Modal */}
+      {editingBook && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+          background: 'rgba(2, 6, 23, 0.6)', backdropFilter: 'blur(4px)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div className="glass-card animate-fade-in" style={{ background: '#fff', width: '90%', maxWidth: '500px', border: 'none', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 className="mb-4">עריכת ספר</h3>
+            <form onSubmit={handleEditSubmit}>
+              <div className="input-group">
+                <label className="input-label">שם הספר</label>
+                <input type="text" className="input-field" value={editingBook.title} onChange={e => setEditingBook({...editingBook, title: e.target.value})} required />
+              </div>
+              <div className="input-group">
+                <label className="input-label">שם המחבר</label>
+                <input type="text" className="input-field" value={editingBook.author} onChange={e => setEditingBook({...editingBook, author: e.target.value})} required />
+              </div>
+              <div className="input-group">
+                <label className="input-label">ז'אנר / קטגוריה</label>
+                <select className="input-field" value={editingBook.genre} onChange={e => setEditingBook({...editingBook, genre: e.target.value})} required>
+                  {BOOK_GENRES.map(genre => (
+                    <option key={genre} value={genre}>{genre}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="input-group">
+                <label className="input-label">קישור לתמונה</label>
+                <input type="url" className="input-field" value={editingBook.coverImage} onChange={e => setEditingBook({...editingBook, coverImage: e.target.value})} />
+              </div>
+              <div className="flex gap-4 mt-6">
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>שמור שינויים</button>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setEditingBook(null)}>ביטול</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
