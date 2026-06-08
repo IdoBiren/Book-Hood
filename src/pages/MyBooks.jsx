@@ -53,33 +53,50 @@ export default function MyBooks() {
     setIsScanning(true);
     try {
       const cleanIsbn = isbn.replace(/[^0-9X]/gi, '');
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanIsbn}`);
-      
-      if (response.status === 429) {
-        alert("גוגל חסמו אותנו זמנית עקב יותר מדי בקשות. נסה שוב מאוחר יותר.");
-        return;
-      }
-      
-      const data = await response.json();
-      
-      if (data.items && data.items.length > 0) {
-        const bookInfo = data.items[0].volumeInfo;
-        
-        let imageUrl = '';
-        if (bookInfo.imageLinks && bookInfo.imageLinks.thumbnail) {
-          imageUrl = bookInfo.imageLinks.thumbnail.replace('http:', 'https:');
+      let title = '';
+      let author = '';
+      let coverImage = '';
+      let found = false;
+
+      // 1. ננסה דרך גוגל תחילה
+      const googleResponse = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanIsbn}`);
+      if (googleResponse.status !== 429) {
+        const googleData = await googleResponse.json();
+        if (googleData.items && googleData.items.length > 0) {
+          const bookInfo = googleData.items[0].volumeInfo;
+          title = bookInfo.title || '';
+          author = bookInfo.authors ? bookInfo.authors.join(', ') : '';
+          if (bookInfo.imageLinks && bookInfo.imageLinks.thumbnail) {
+            coverImage = bookInfo.imageLinks.thumbnail.replace('http:', 'https:');
+          }
+          found = true;
         }
-        
+      }
+
+      // 2. אם גוגל נכשל או החזיר 429, ננסה דרך OpenLibrary
+      if (!found) {
+        const openLibResponse = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${cleanIsbn}&format=json&jscmd=data`);
+        const openLibData = await openLibResponse.json();
+        const bookKey = `ISBN:${cleanIsbn}`;
+        if (openLibData[bookKey]) {
+          const bookInfo = openLibData[bookKey];
+          title = bookInfo.title || '';
+          author = bookInfo.authors ? bookInfo.authors.map(a => a.name).join(', ') : '';
+          coverImage = bookInfo.cover ? bookInfo.cover.large : '';
+          found = true;
+        }
+      }
+
+      if (found) {
         setNewBook({
           ...newBook,
-          title: bookInfo.title || '',
-          author: bookInfo.authors ? bookInfo.authors.join(', ') : '',
-          coverImage: imageUrl || newBook.coverImage
+          title: title,
+          author: author,
+          coverImage: coverImage || newBook.coverImage
         });
-        
-        alert(`נמצא: ${bookInfo.title} מאת ${bookInfo.authors ? bookInfo.authors.join(', ') : 'לא ידוע'}`);
+        alert(`נמצא: ${title} מאת ${author || 'לא ידוע'}`);
       } else {
-        alert("הברקוד נסרק בהצלחה, אך הספר אינו קיים במאגר של גוגל 😔. אנא הקלד ידנית.");
+        alert("הברקוד נסרק בהצלחה, אך הספר אינו קיים במאגר. אנא הקלד ידנית.");
       }
     } catch (err) {
       console.error("Error fetching ISBN data:", err);

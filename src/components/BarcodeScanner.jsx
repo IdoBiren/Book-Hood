@@ -12,6 +12,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
     // Give the DOM a tiny bit of time to render the #reader div
     const timer = setTimeout(() => {
       html5QrCode = new Html5Qrcode("reader");
+      let isProcessing = false;
       
       html5QrCode.start(
         { facingMode: "environment" }, // Prefer back camera
@@ -21,6 +22,8 @@ export default function BarcodeScanner({ onScan, onClose }) {
           aspectRatio: 1.0
         },
         (decodedText) => {
+          if (isProcessing) return;
+          isProcessing = true;
           // Success
           html5QrCode.stop().then(() => {
             onScan(decodedText);
