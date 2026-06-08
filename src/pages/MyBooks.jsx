@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { BookPlus, Trash2, Send, Undo2, Edit2, Camera, Loader2 } from 'lucide-react';
+import { BookPlus, Trash2, Send, Undo2, Edit2, Camera, Loader2, ScanBarcode } from 'lucide-react';
 import { getUserBooks, addBook, deleteBook, editBook, lendBook, returnBook, getAllUsers, uploadBookCover } from '../services/db';
+import BarcodeScanner from '../components/BarcodeScanner';
 import { BOOK_GENRES } from '../utils/constants';
 
 export default function MyBooks() {
@@ -19,6 +20,8 @@ export default function MyBooks() {
   const [newCoverFile, setNewCoverFile] = useState(null);
   const [editCoverFile, setEditCoverFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -44,6 +47,47 @@ export default function MyBooks() {
   }, [currentUser]);
 
   if (!currentUser) return <div className="text-center mt-8 glass-card"><h3>אנא התחברו כדי לצפות בספרים שלכם.</h3></div>;
+
+  const handleBarcodeScan = async (isbn) => {
+    setShowScanner(false);
+    setIsScanning(true);
+    try {
+      const cleanIsbn = isbn.replace(/[^0-9X]/gi, '');
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanIsbn}`);
+      
+      if (response.status === 429) {
+        alert("גוגל חסמו אותנו זמנית עקב יותר מדי בקשות. נסה שוב מאוחר יותר.");
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (data.items && data.items.length > 0) {
+        const bookInfo = data.items[0].volumeInfo;
+        
+        let imageUrl = '';
+        if (bookInfo.imageLinks && bookInfo.imageLinks.thumbnail) {
+          imageUrl = bookInfo.imageLinks.thumbnail.replace('http:', 'https:');
+        }
+        
+        setNewBook({
+          ...newBook,
+          title: bookInfo.title || '',
+          author: bookInfo.authors ? bookInfo.authors.join(', ') : '',
+          coverImage: imageUrl || newBook.coverImage
+        });
+        
+        alert(`נמצא: ${bookInfo.title} מאת ${bookInfo.authors ? bookInfo.authors.join(', ') : 'לא ידוע'}`);
+      } else {
+        alert("הברקוד נסרק בהצלחה, אך הספר אינו קיים במאגר של גוגל 😔. אנא הקלד ידנית.");
+      }
+    } catch (err) {
+      console.error("Error fetching ISBN data:", err);
+      alert("אירעה שגיאה בחיפוש הברקוד.");
+    } finally {
+      setIsScanning(false);
+    }
+  };
 
   const handleAddBook = async (e) => {
     e.preventDefault();
@@ -160,8 +204,19 @@ export default function MyBooks() {
       </div>
 
       {showAddForm && (
-        <div className="glass-card mb-8 animate-fade-in hover-lift" style={{ maxWidth: '600px', margin: '0 auto 2rem' }}>
-          <h3 className="mb-4">הוספת ספר חדש</h3>
+        <div className="glass-card mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="m-0 flex items-center gap-2"><BookPlus style={{ color: 'var(--primary-color)' }} /> הוספת ספר חדש</h3>
+            <button 
+              type="button" 
+              className="btn btn-secondary hover-lift" 
+              onClick={() => setShowScanner(true)}
+              disabled={isScanning}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
+            >
+              {isScanning ? <Loader2 size={18} className="animate-spin" /> : <ScanBarcode size={18} />} סרוק ברקוד
+            </button>
+          </div>
           <form onSubmit={handleAddBook}>
             <div className="input-group">
               <label className="input-label">שם הספר</label>
@@ -215,6 +270,7 @@ export default function MyBooks() {
           {books.length === 0 ? (
             <div className="glass-card text-center" style={{ gridColumn: '1 / -1', padding: '4rem 2rem' }}>
               <h3>אין לכם ספרים כרגע במאגר</h3>
+              <p>לא נמצאו ספרים. זה הזמן להוסיף את הספר הראשון שלך!</p>
             </div>
           ) : (
             books.map(book => (
@@ -355,6 +411,13 @@ export default function MyBooks() {
             </div>
           </div>
         </div>
+      )}
+
+      {showScanner && (
+        <BarcodeScanner 
+          onScan={handleBarcodeScan} 
+          onClose={() => setShowScanner(false)} 
+        />
       )}
     </div>
   );
