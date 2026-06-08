@@ -1,5 +1,6 @@
-import { db, hasFirebaseConfig } from '../firebase';
+import { db, storage, hasFirebaseConfig } from '../firebase';
 import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // In-memory mock DB for demo mode
 let mockBooks = [
@@ -121,4 +122,14 @@ export async function returnBook(bookId) {
     borrowerName: null,
     dueDate: null
   });
+}
+
+export async function uploadBookCover(file, bookId) {
+  if (!hasFirebaseConfig || !storage) return null;
+  const fileExtension = file.name.split('.').pop();
+  const storageRef = ref(storage, `bookCovers/${bookId}_${Date.now()}.${fileExtension}`);
+  
+  await uploadBytes(storageRef, file);
+  const downloadUrl = await getDownloadURL(storageRef);
+  return downloadUrl;
 }

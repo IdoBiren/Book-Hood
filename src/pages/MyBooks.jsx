@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { BookPlus, Trash2, Send, Undo2, Edit2, Wand2, Loader2 } from 'lucide-react';
-import { getUserBooks, addBook, deleteBook, editBook, lendBook, returnBook, getAllUsers } from '../services/db';
+import { BookPlus, Trash2, Send, Undo2, Edit2, Camera, Loader2 } from 'lucide-react';
+import { getUserBooks, addBook, deleteBook, editBook, lendBook, returnBook, getAllUsers, uploadBookCover } from '../services/db';
 import { BOOK_GENRES } from '../utils/constants';
 
 export default function MyBooks() {
@@ -16,7 +16,9 @@ export default function MyBooks() {
   const [editingBook, setEditingBook] = useState(null);
   const [lendingBookId, setLendingBookId] = useState(null);
   const [borrowerNameInput, setBorrowerNameInput] = useState('');
-  const [isFetchingCover, setIsFetchingCover] = useState(false);
+  const [newCoverFile, setNewCoverFile] = useState(null);
+  const [editCoverFile, setEditCoverFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -41,46 +43,11 @@ export default function MyBooks() {
     loadData();
   }, [currentUser]);
 
-  const fetchCoverImage = async (bookData, setBookDataFn) => {
-    if (!bookData.title) {
-      alert("אנא הזן את שם הספר תחילה.");
-      return;
-    }
-    
-    setIsFetchingCover(true);
-    try {
-      let googleQuery = `intitle:${bookData.title}`;
-      if (bookData.author) googleQuery += `+inauthor:${bookData.author}`;
-      const googleResponse = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(googleQuery)}&maxResults=1`);
-      
-      if (googleResponse.status === 429) {
-        alert("גוגל חסמו אותנו זמנית בגלל יותר מדי בקשות (שגיאה 429). אנא נסה שוב בעוד מספר דקות, או הוסף קישור ידנית.");
-        return;
-      }
-      
-      const googleData = await googleResponse.json();
-      
-      if (googleData.items && googleData.items.length > 0 && googleData.items[0].volumeInfo.imageLinks) {
-        let imageUrl = googleData.items[0].volumeInfo.imageLinks.thumbnail;
-        imageUrl = imageUrl.replace('http:', 'https:');
-        setBookDataFn({ ...bookData, coverImage: imageUrl });
-      } else {
-        alert("לא מצאנו תמונה מתאימה בגוגל 😔. תוכל להוסיף קישור ידנית.");
-      }
-    } catch (err) {
-      console.error("Error fetching cover", err);
-      alert("אירעה שגיאה בחיפוש התמונה. נסה שוב או הזן קישור ידנית.");
-    } finally {
-      setIsFetchingCover(false);
-    }
-  };
-
   if (!currentUser) return <div className="text-center mt-8 glass-card"><h3>אנא התחברו כדי לצפות בספרים שלכם.</h3></div>;
 
   const handleAddBook = async (e) => {
     e.preventDefault();
     if (!newBook.title || !newBook.author || !newBook.genre) return;
-    
     try {
       const addedBook = await addBook({
         title: newBook.title,
@@ -111,19 +78,32 @@ export default function MyBooks() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editingBook.title || !editingBook.author || !editingBook.genre) return;
+    setIsUploading(true);
     
     try {
+      let finalCoverImage = editingBook.coverImage;
+      
+      if (editCoverFile) {
+        const downloadUrl = await uploadBookCover(editCoverFile, editingBook.id);
+        if (downloadUrl) {
+          finalCoverImage = downloadUrl;
+        }
+      }
+      
       await editBook(editingBook.id, {
         title: editingBook.title,
         author: editingBook.author,
         genre: editingBook.genre,
-        coverImage: editingBook.coverImage
+        coverImage: finalCoverImage
       });
-      setBooks(books.map(b => b.id === editingBook.id ? { ...b, ...editingBook } : b));
+      setBooks(books.map(b => b.id === editingBook.id ? { ...b, ...editingBook, coverImage: finalCoverImage } : b));
       setEditingBook(null);
+      setEditCoverFile(null);
     } catch (err) {
       console.error("Error editing book", err);
       alert("אירעה שגיאה בעדכון הספר.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -201,30 +181,26 @@ export default function MyBooks() {
               </select>
             </div>
             <div className="input-group">
-              <label className="input-label">קישור לתמונה (לא חובה)</label>
-              <div className="flex gap-2">
+              <label className="input-label">תמונת כריכה (לא חובה)</label>
+              <div className="flex gap-2 items-center">
                 <input 
-                  type="url" 
-                  className="input-field" 
-                  placeholder="https://..."
-                  value={newBook.coverImage}
-                  onChange={(e) => setNewBook({...newBook, coverImage: e.target.value})}
-                  style={{ flex: 1 }}
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => {
+                    if (e.target.files[0]) setNewCoverFile(e.target.files[0]);
+                  }}
+                  style={{ display: 'none' }}
+                  id="new-cover-upload"
                 />
-                <button 
-                  type="button" 
-                  className="btn btn-secondary hover-lift" 
-                  onClick={() => fetchCoverImage(newBook, setNewBook)}
-                  disabled={isFetchingCover}
-                  style={{ padding: '0.5rem', minWidth: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  title="מצא עטיפה אוטומטית לפי השם"
-                >
-                  {isFetchingCover ? <Loader2 size={20} className="animate-spin" /> : <Wand2 size={20} style={{ color: 'var(--primary-color)' }} />}
-                </button>
+                <label htmlFor="new-cover-upload" className="btn btn-secondary hover-lift" style={{ padding: '0.8rem 1rem', display: 'flex', gap: '0.5rem', cursor: 'pointer', flex: 1, margin: 0 }}>
+                  <Camera size={18} /> {newCoverFile ? newCoverFile.name : 'צלם או העלה תמונה מגלריה'}
+                </label>
               </div>
             </div>
             <div className="mt-4 flex justify-between">
-              <button type="submit" className="btn btn-primary w-full">הוסף למאגר</button>
+              <button type="submit" className="btn btn-primary w-full" disabled={isUploading}>
+                {isUploading ? <><Loader2 size={18} className="animate-spin" /> מפעיל קסמים...</> : 'הוסף למאגר'}
+              </button>
             </div>
           </form>
         </div>
@@ -325,30 +301,27 @@ export default function MyBooks() {
                 </select>
               </div>
               <div className="input-group">
-                <label className="input-label">קישור לתמונה</label>
-                <div className="flex gap-2">
+                <label className="input-label">תמונת כריכה</label>
+                <div className="flex gap-2 items-center">
                   <input 
-                    type="url" 
-                    className="input-field" 
-                    value={editingBook.coverImage} 
-                    onChange={e => setEditingBook({...editingBook, coverImage: e.target.value})} 
-                    style={{ flex: 1 }}
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      if (e.target.files[0]) setEditCoverFile(e.target.files[0]);
+                    }}
+                    style={{ display: 'none' }}
+                    id="edit-cover-upload"
                   />
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary hover-lift" 
-                    onClick={() => fetchCoverImage(editingBook, setEditingBook)}
-                    disabled={isFetchingCover}
-                    style={{ padding: '0.5rem', minWidth: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    title="מצא עטיפה אוטומטית לפי השם"
-                  >
-                    {isFetchingCover ? <Loader2 size={20} className="animate-spin" /> : <Wand2 size={20} style={{ color: 'var(--primary-color)' }} />}
-                  </button>
+                  <label htmlFor="edit-cover-upload" className="btn btn-secondary hover-lift" style={{ padding: '0.8rem 1rem', display: 'flex', gap: '0.5rem', cursor: 'pointer', flex: 1, margin: 0 }}>
+                    <Camera size={18} /> {editCoverFile ? editCoverFile.name : 'החלף תמונה (צלם/העלה)'}
+                  </label>
                 </div>
               </div>
               <div className="flex gap-4 mt-6">
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>שמור שינויים</button>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setEditingBook(null)}>ביטול</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isUploading}>
+                  {isUploading ? <Loader2 size={18} className="animate-spin" /> : 'שמור שינויים'}
+                </button>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => { setEditingBook(null); setEditCoverFile(null); }}>ביטול</button>
               </div>
             </form>
           </div>
