@@ -144,6 +144,31 @@ export async function returnBook(bookId) {
   });
 }
 
+export async function updateCatalogMetadata(catalogKey, isIsbn, updatedData) {
+  if (!hasFirebaseConfig) {
+    if (isIsbn) {
+      mockBooks = mockBooks.map(b => b.isbn === catalogKey ? { ...b, ...updatedData } : b);
+    } else {
+      mockBooks = mockBooks.map(b => b.id === catalogKey ? { ...b, ...updatedData } : b);
+    }
+    return;
+  }
+
+  try {
+    if (isIsbn) {
+      const q = query(collection(db, 'books'), where('isbn', '==', catalogKey));
+      const snapshot = await getDocs(q);
+      const updatePromises = snapshot.docs.map(docSnap => updateDoc(docSnap.ref, updatedData));
+      await Promise.all(updatePromises);
+    } else {
+      await updateDoc(doc(db, 'books', catalogKey), updatedData);
+    }
+  } catch (err) {
+    console.error("Error updating catalog metadata:", err);
+    throw err;
+  }
+}
+
 export async function uploadBookCover(file, bookId) {
   if (!hasFirebaseConfig || !storage) return null;
   const fileExtension = file.name.split('.').pop();
