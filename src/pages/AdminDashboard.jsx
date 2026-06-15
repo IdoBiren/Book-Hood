@@ -206,53 +206,74 @@ export default function AdminDashboard() {
                   <td style={{ padding: '1rem' }}>
                     <img src={book.coverImage} alt={book.title} style={{ width: '50px', height: '70px', objectFit: 'cover', borderRadius: '4px' }} />
                   </td>
-                  
-                  {editingCatalogKey === book.catalogKey ? (
-                    <td colSpan="2" style={{ padding: '1rem' }}>
-                      <div className="grid grid-cols-2" style={{ gap: '0.5rem' }}>
-                        <input type="text" className="input" placeholder="שם הספר" value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} />
-                        <input type="text" className="input" placeholder="סופר" value={editForm.author} onChange={e => setEditForm({...editForm, author: e.target.value})} />
-                        <input type="text" className="input" placeholder="ז'אנר" value={editForm.genre} onChange={e => setEditForm({...editForm, genre: e.target.value})} />
-                        <input type="text" className="input" placeholder="ברקוד (ISBN)" value={editForm.isbn} onChange={e => setEditForm({...editForm, isbn: e.target.value})} />
-                        <div className="col-span-2 flex items-center gap-2 mt-2">
-                           <label className="text-sm">עדכון תמונה:</label>
-                           <input type="file" accept="image/*" onChange={e => setNewCoverFile(e.target.files[0])} style={{ fontSize: '0.8rem' }} />
-                        </div>
-                      </div>
-                    </td>
-                  ) : (
-                    <>
-                      <td style={{ padding: '1rem' }}>
-                        <div style={{ fontWeight: 'bold' }}>{book.title}</div>
-                        <div className="text-sm text-muted">{book.author} | {book.genre}</div>
-                        <div className="text-xs mt-1" style={{ color: 'var(--primary-color)' }}>ISBN: {book.isbn || 'אין ברקוד'}</div>
-                      </td>
-                      <td style={{ padding: '1rem', fontWeight: 'bold' }}>
-                        {book.copiesCount}
-                      </td>
-                    </>
-                  )}
-
                   <td style={{ padding: '1rem' }}>
-                    {editingCatalogKey === book.catalogKey ? (
-                       <div className="flex gap-2">
-                          <button onClick={() => handleSaveCatalogEdit(book)} disabled={isSaving} className="btn btn-primary" style={{ padding: '0.5rem' }}>
-                            {isSaving ? <Loader2 size={16} className="spin" /> : <Save size={16} />} שמור שינויים
-                          </button>
-                          <button onClick={() => setEditingCatalogKey(null)} className="btn btn-secondary" style={{ padding: '0.5rem' }}>
-                            <X size={16} /> ביטול
-                          </button>
-                       </div>
-                    ) : (
-                      <button onClick={() => startEditCatalog(book)} className="btn btn-secondary" style={{ padding: '0.5rem' }} title="ערוך פרטי ספר במאגר">
-                        <Edit2 size={16} /> ערוך ספר
-                      </button>
-                    )}
+                    <div style={{ fontWeight: 'bold' }}>{book.title}</div>
+                    <div className="text-sm text-muted">{book.author} | {book.genre}</div>
+                    <div className="text-xs mt-1" style={{ color: 'var(--primary-color)' }}>ISBN: {book.isbn || 'אין ברקוד'}</div>
+                  </td>
+                  <td style={{ padding: '1rem', fontWeight: 'bold' }}>
+                    {book.copiesCount}
+                  </td>
+                  <td style={{ padding: '1rem' }}>
+                    <button onClick={() => startEditCatalog(book)} className="btn btn-secondary" style={{ padding: '0.5rem' }} title="ערוך פרטי ספר במאגר">
+                      <Edit2 size={16} /> ערוך ספר
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Editing Modal */}
+      {editingCatalogKey && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+          background: 'rgba(2, 6, 23, 0.6)', backdropFilter: 'blur(4px)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div className="glass-card animate-fade-in" style={{ background: '#fff', width: '90%', maxWidth: '500px', border: 'none', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 className="mb-4">עריכת פרטי ספר (גורף)</h3>
+            <div className="grid" style={{ gap: '1rem' }}>
+              <div className="input-group">
+                <label className="input-label">שם הספר</label>
+                <input type="text" className="input-field" placeholder="שם הספר" value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} />
+              </div>
+              <div className="input-group">
+                <label className="input-label">סופר</label>
+                <input type="text" className="input-field" placeholder="סופר" value={editForm.author} onChange={e => setEditForm({...editForm, author: e.target.value})} />
+              </div>
+              <div className="input-group">
+                <label className="input-label">ז'אנר / קטגוריה</label>
+                <input type="text" className="input-field" placeholder="ז'אנר" value={editForm.genre} onChange={e => setEditForm({...editForm, genre: e.target.value})} />
+              </div>
+              <div className="input-group">
+                <label className="input-label">ברקוד (ISBN)</label>
+                <input type="text" className="input-field" placeholder="ברקוד (ISBN)" value={editForm.isbn} onChange={e => setEditForm({...editForm, isbn: e.target.value})} />
+              </div>
+              <div className="input-group">
+                <label className="input-label">עדכון תמונת כריכה</label>
+                <input type="file" accept="image/*" onChange={e => setNewCoverFile(e.target.files[0])} style={{ fontSize: '0.9rem' }} className="input-field" />
+              </div>
+            </div>
+            
+            <div className="flex gap-4 mt-6">
+              <button 
+                onClick={() => {
+                  const bookToSave = catalogBooks.find(b => b.catalogKey === editingCatalogKey);
+                  if(bookToSave) handleSaveCatalogEdit(bookToSave);
+                }} 
+                disabled={isSaving} 
+                className="btn btn-primary" style={{ flex: 1 }}
+              >
+                {isSaving ? <Loader2 size={16} className="spin" /> : <Save size={16} />} שמור שינויים
+              </button>
+              <button onClick={() => setEditingCatalogKey(null)} className="btn btn-secondary" style={{ flex: 1 }}>
+                ביטול
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
