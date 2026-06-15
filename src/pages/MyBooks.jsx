@@ -114,6 +114,16 @@ export default function MyBooks() {
         }
       }
 
+      // בדיקה אם המשתמש כבר העלה עותק של הספר הזה
+      const alreadyOwned = books.some(b => (b.isbn && b.isbn === cleanIsbn) || (found && b.title === title));
+      if (alreadyOwned) {
+        const confirmAdd = window.confirm(`נראה שכבר העלית עותק של הספר "${title || 'הזה'}" למאגר! האם תרצה להוסיף עותק נוסף?`);
+        if (!confirmAdd) {
+          setIsScanning(false);
+          return;
+        }
+      }
+
       // בכל מקרה שומרים את ה-ISBN כדי להגדיל את מאגר הקהילה!
       setNewBook({
         ...newBook,
