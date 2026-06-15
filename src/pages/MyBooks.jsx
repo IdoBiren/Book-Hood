@@ -303,6 +303,14 @@ export default function MyBooks() {
             </button>
           </div>
           <form onSubmit={handleAddBook}>
+            {newBook.isbn && (
+              <div className="input-group">
+                <label className="input-label">ברקוד שנסרק (ISBN)</label>
+                <div style={{ padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#64748b', fontWeight: 'bold', fontFamily: 'monospace', letterSpacing: '1px' }}>
+                  {newBook.isbn}
+                </div>
+              </div>
+            )}
             <div className="input-group">
               <label className="input-label">שם הספר</label>
               <input type="text" className="input-field" value={newBook.title} onChange={e => setNewBook({...newBook, title: e.target.value})} placeholder="לדוגמה: שר הטבעות" required />
