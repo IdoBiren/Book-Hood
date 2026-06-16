@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Library, BookOpen, MessageCircle, Search, Filter, ArrowUpDown } from 'lucide-react';
+import { Library, BookOpen, MessageCircle, Search, Filter, ArrowUpDown, Loader2 } from 'lucide-react';
 import { getAvailableBooks } from '../services/db';
 import { BOOK_GENRES } from '../utils/constants';
 
@@ -8,6 +8,7 @@ export default function Home() {
   const { currentUser, isDemoMode } = useAuth();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedBookId, setExpandedBookId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -43,7 +44,45 @@ export default function Home() {
       
       try {
         const availableBooks = await getAvailableBooks();
-        setBooks(availableBooks);
+        
+        // Group books by ISBN or Title+Author
+        const grouped = Object.values(availableBooks.reduce((acc, book) => {
+          const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9א-ת]/g, '');
+          let key;
+          if (book.isbn && book.isbn.length >= 10) {
+            key = `isbn_${book.isbn}`;
+          } else {
+            key = `title_${normalize(book.title)}_author_${normalize(book.author)}`;
+          }
+
+          if (!acc[key]) {
+            acc[key] = {
+              id: key,
+              title: book.title,
+              author: book.author,
+              genre: book.genre,
+              coverImage: book.coverImage,
+              addedAt: book.addedAt,
+              owners: []
+            };
+          }
+          
+          acc[key].owners.push({
+            bookId: book.id,
+            ownerId: book.ownerId,
+            ownerName: book.ownerName,
+            ownerPhone: book.ownerPhone,
+            isMine: currentUser && book.ownerId === currentUser.uid
+          });
+
+          if (!acc[key].coverImage && book.coverImage) {
+            acc[key].coverImage = book.coverImage;
+          }
+
+          return acc;
+        }, {}));
+
+        setBooks(grouped);
       } catch (error) {
         console.error("Failed to fetch books:", error);
       } finally {
@@ -53,6 +92,18 @@ export default function Home() {
     }
     fetchBooks();
   }, [currentUser]);
+
+  const handleWhatsappClick = (owner, bookTitle, e) => {
+    e.preventDefault();
+    const text = encodeURIComponent(`היי ${owner.ownerName}! 👋 ראיתי את הספר "${bookTitle}" בספריית ניר עוז וממש אשמח להשאיל אותו אם אפשר. תודה מראש! 📚✨`);
+    if (!owner.ownerPhone) {
+      alert(`למשתמש ${owner.ownerName} אין מספר טלפון רשום במערכת.\nההודעה מוכנה - בחלון שיפתח בוואטסאפ תוכל לחפש את ${owner.ownerName} ולשלוח אליו/אליה.`);
+      window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    } else {
+      const phone = owner.ownerPhone.replace(/\D/g, '').replace(/^0/, '972');
+      window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${text}`, '_blank');
+    }
+  };
 
   return (
     <div className="animate-fade-in">
@@ -65,8 +116,8 @@ export default function Home() {
       )}
 
       <div className="text-center mb-6 mt-4">
-        <h1 className="mb-4" style={{ fontSize: '2.5rem' }}>הספרים הזמינים בקהילה</h1>
-        <p className="text-muted" style={{ fontSize: '1.2rem' }}>מצאו ספרים מעניינים להשאלה מחברי הקהילה שלכם</p>
+        <h1 className="mb-4" style={{ fontSize: '2.5rem' }}>הספרים בקהילה</h1>
+
       </div>
 
       <div className="flex justify-center w-full mb-10">
@@ -146,10 +197,11 @@ export default function Home() {
           <p className="text-muted mt-2">התחברו עם חשבון הגוגל שלכם בלחיצת כפתור אחת למעלה ותתחילו להשאיל!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {loading ? (
-            <div className="glass-card text-center" style={{ gridColumn: '1 / -1', padding: '4rem 2rem' }}>
-              <h3>טוען ספרים...</h3>
+            <div className="text-center" style={{ gridColumn: '1 / -1', padding: '2rem' }}>
+              <Loader2 size={32} className="animate-spin mx-auto mb-4" style={{ color: 'var(--primary-color)' }} />
+              <p>טוען מאגר ספרים...</p>
             </div>
           ) : books.length === 0 ? (
             <div className="glass-card text-center hover-lift" style={{ gridColumn: '1 / -1', padding: '4rem 2rem' }}>
@@ -164,11 +216,13 @@ export default function Home() {
             </div>
           ) : (
             filteredBooks.map(book => {
-              const isMine = currentUser && book.ownerId === currentUser.uid;
+              const isMine = book.owners.some(o => o.isMine);
               return (
-              <div key={book.id} className="glass-card flex flex-col hover-lift" style={{ 
+              <div key={book.id} className="glass-card flex" style={{ 
                 padding: '0', 
                 overflow: 'hidden', 
+                flexDirection: 'row',
+                alignItems: 'stretch',
                 position: 'relative',
                 border: isMine ? '2px solid var(--primary-color)' : '',
                 boxShadow: isMine ? '0 8px 30px rgba(99, 102, 241, 0.2)' : ''
@@ -188,29 +242,68 @@ export default function Home() {
                     boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                     backdropFilter: 'blur(4px)'
                   }}>
-                    הספר שלי
+                    יש לי עותק
                   </div>
                 )}
-                <div style={{ height: '240px', width: '100%', overflow: 'hidden' }}>
-                  <img src={book.coverImage} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-                <div className="flex-col justify-between flex" style={{ padding: '1.5rem', flex: 1 }}>
+                
+                <div className="flex-col justify-between flex" style={{ padding: '0.25rem 1rem 1rem 1rem', flex: 1 }}>
                   <div>
-                    <h4 style={{ marginBottom: '0.5rem' }}>{book.title}</h4>
-                    <p className="text-muted" style={{ fontSize: '1.1rem', marginBottom: '0.25rem', fontWeight: 'bold' }}>{book.author}</p>
-                    <p style={{ fontSize: '1.1rem', color: 'var(--primary-color)', fontWeight: '600' }}>{book.genre}</p>
+                    <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.25rem', paddingRight: isMine ? '85px' : '0' }}>{book.title}</h4>
+                    <p className="text-muted" style={{ fontSize: '1rem', marginBottom: '0.25rem', fontWeight: 'bold' }}>{book.author}</p>
+                    <p style={{ fontSize: '1rem', color: 'var(--primary-color)', fontWeight: '600' }}>{book.genre}</p>
                   </div>
-                  <div className="mt-4 pt-4 flex justify-between items-center" style={{ borderTop: '1px solid var(--surface-border)' }}>
-                    <p style={{ fontSize: '1rem', color: isMine ? 'var(--primary-color)' : 'var(--text-muted)', fontWeight: isMine ? 'bold' : 'normal' }}>
-                      שייך ל: <strong>{isMine ? 'אני' : book.ownerName}</strong>
-                    </p>
-                    {!isMine && book.ownerPhone && (
-                      <a href={`https://api.whatsapp.com/send?phone=${book.ownerPhone.replace(/\D/g, '').replace(/^0/, '972')}&text=${encodeURIComponent(`היי ${book.ownerName}! 👋 ראיתי את הספר "${book.title}" בספריית ניר עוז וממש אשמח להשאיל אותו אם אפשר. תודה מראש! 📚✨`)}`} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', gap: '0.4rem', background: '#25D366', borderColor: '#25D366' }} title="שלח וואטסאפ">
-                        <MessageCircle size={16} /> בקש
-                      </a>
+                  <div className="mt-4 pt-4 flex flex-col justify-between" style={{ borderTop: '1px solid var(--surface-border)', gap: '0.5rem' }}>
+                    {book.owners.length === 1 ? (
+                      <>
+                        <p style={{ fontSize: '0.95rem', color: book.owners[0].isMine ? 'var(--primary-color)' : 'var(--text-muted)', fontWeight: book.owners[0].isMine ? 'bold' : 'normal' }}>
+                          שייך ל: <strong>{book.owners[0].isMine ? 'אני' : book.owners[0].ownerName}</strong>
+                        </p>
+                        {!book.owners[0].isMine && (
+                          <button onClick={(e) => handleWhatsappClick(book.owners[0], book.title, e)} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', gap: '0.4rem', background: '#25D366', borderColor: '#25D366', alignSelf: 'flex-start' }} title="שלח וואטסאפ">
+                            <MessageCircle size={16} /> בקש בוואטסאפ
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        <div className="flex justify-between items-center">
+                          <p style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--primary-color)', margin: 0 }}>
+                            {book.owners.length} עותקים זמינים
+                          </p>
+                          <button 
+                            className="btn btn-secondary" 
+                            style={{ padding: '0.3rem 0.6rem', fontSize: '0.85rem' }}
+                            onClick={() => setExpandedBookId(expandedBookId === book.id ? null : book.id)}
+                          >
+                            {expandedBookId === book.id ? 'הסתר רשימה' : 'למי יש?'}
+                          </button>
+                        </div>
+                        {expandedBookId === book.id && (
+                          <div className="flex flex-col gap-2 p-3 mt-1" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                            {book.owners.map((owner, idx) => (
+                              <div key={owner.bookId} className="flex justify-between items-center" style={{ paddingBottom: idx < book.owners.length - 1 ? '0.5rem' : 0, borderBottom: idx < book.owners.length - 1 ? '1px solid #e2e8f0' : 'none' }}>
+                                <span style={{ fontSize: '0.9rem', fontWeight: owner.isMine ? 'bold' : 'normal', color: owner.isMine ? 'var(--primary-color)' : 'inherit' }}>
+                                  {owner.isMine ? 'אני' : owner.ownerName}
+                                </span>
+                                {!owner.isMine && (
+                                  <button onClick={(e) => handleWhatsappClick(owner, book.title, e)} className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', gap: '0.25rem', background: '#25D366', borderColor: '#25D366', fontSize: '0.8rem' }} title="שלח וואטסאפ">
+                                    <MessageCircle size={14} /> וואטסאפ
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
+
+                {book.coverImage && (
+                  <div style={{ width: '120px', flexShrink: 0, background: '#f8fafc', borderRight: '1px solid var(--surface-border)' }}>
+                    <img src={book.coverImage} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
               </div>
               );
             })

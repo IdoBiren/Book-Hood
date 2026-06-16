@@ -56,6 +56,13 @@ export async function getUserBooks(userId) {
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+export async function getBorrowedBooks(userId) {
+  if (!hasFirebaseConfig) return mockBooks.filter(b => b.borrowerId === userId && b.status === 'borrowed');
+  const q = query(collection(db, 'books'), where('borrowerId', '==', userId), where('status', '==', 'borrowed'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
 export async function getAvailableBooks() {
   if (!hasFirebaseConfig) return mockBooks.filter(b => b.status === 'available');
 
@@ -120,13 +127,14 @@ export async function editBook(bookId, updatedData) {
   await updateDoc(doc(db, 'books', bookId), updatedData);
 }
 
-export async function lendBook(bookId, borrowerName, dueDateStr) {
+export async function lendBook(bookId, borrowerId, borrowerName, dueDateStr) {
   if (!hasFirebaseConfig) {
-    mockBooks = mockBooks.map(b => b.id === bookId ? { ...b, status: 'borrowed', borrowerName, dueDate: dueDateStr } : b);
+    mockBooks = mockBooks.map(b => b.id === bookId ? { ...b, status: 'borrowed', borrowerId, borrowerName, dueDate: dueDateStr } : b);
     return;
   }
   await updateDoc(doc(db, 'books', bookId), {
     status: 'borrowed',
+    borrowerId,
     borrowerName,
     dueDate: dueDateStr
   });
@@ -134,11 +142,12 @@ export async function lendBook(bookId, borrowerName, dueDateStr) {
 
 export async function returnBook(bookId) {
   if (!hasFirebaseConfig) {
-    mockBooks = mockBooks.map(b => b.id === bookId ? { ...b, status: 'available', borrowerName: null, dueDate: null } : b);
+    mockBooks = mockBooks.map(b => b.id === bookId ? { ...b, status: 'available', borrowerId: null, borrowerName: null, dueDate: null } : b);
     return;
   }
   await updateDoc(doc(db, 'books', bookId), {
     status: 'available',
+    borrowerId: null,
     borrowerName: null,
     dueDate: null
   });
@@ -169,12 +178,86 @@ export async function updateCatalogMetadata(catalogKey, isIsbn, updatedData) {
   }
 }
 
+export async function compressImage(file, maxWidth = 600, maxHeight = 800, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = event => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(blob => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => resolve(file); // Fallback to original if error
+    };
+    reader.onerror = () => resolve(file);
+  });
+}
+
 export async function uploadBookCover(file, bookId) {
-  if (!hasFirebaseConfig || !storage) return null;
-  const fileExtension = file.name.split('.').pop();
-  const storageRef = ref(storage, `bookCovers/${bookId}_${Date.now()}.${fileExtension}`);
-  
-  await uploadBytes(storageRef, file);
-  const downloadUrl = await getDownloadURL(storageRef);
-  return downloadUrl;
+  try {
+    // דחיסת התמונה לפני ההעלאה
+    const compressedFile = await compressImage(file);
+    
+    // מפתח ה-API של ImgBB שישמר בקובץ .env
+    const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
+    
+    if (!apiKey) {
+      console.error("Missing VITE_IMGBB_API_KEY in .env");
+      alert("יש להוסיף מפתח API של ImgBB לקובץ .env");
+      return null;
+    }
+
+    const formData = new FormData();
+    formData.append('image', compressedFile);
+
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.data.url;
+    } else {
+      console.error("ImgBB upload failed:", data);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error uploading cover to ImgBB:", error);
+    return null;
+  }
 }

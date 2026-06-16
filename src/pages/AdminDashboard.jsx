@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ShieldAlert, Trash2, Edit2, Loader2, Save, X, BookCopy, Database } from 'lucide-react';
+import { ShieldAlert, Trash2, Edit2, Loader2, Save, X, BookCopy, Database, Camera, ImagePlus } from 'lucide-react';
 import { getAllBooksAdmin, deleteBook, uploadBookCover, updateCatalogMetadata } from '../services/db';
 
 export default function AdminDashboard() {
@@ -204,7 +204,11 @@ export default function AdminDashboard() {
               {catalogBooks.map(book => (
                 <tr key={book.catalogKey} style={{ borderBottom: '1px solid var(--surface-border)' }}>
                   <td style={{ padding: '1rem' }}>
-                    <img src={book.coverImage} alt={book.title} style={{ width: '50px', height: '70px', objectFit: 'cover', borderRadius: '4px' }} />
+                    {book.coverImage ? (
+                      <img src={book.coverImage} alt={book.title} style={{ width: '50px', height: '70px', objectFit: 'cover', borderRadius: '4px' }} />
+                    ) : (
+                      <div style={{ width: '50px', height: '70px', background: '#e2e8f0', borderRadius: '4px' }} />
+                    )}
                   </td>
                   <td style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: 'bold' }}>{book.title}</div>
@@ -248,13 +252,37 @@ export default function AdminDashboard() {
                 <label className="input-label">ז'אנר / קטגוריה</label>
                 <input type="text" className="input-field" placeholder="ז'אנר" value={editForm.genre} onChange={e => setEditForm({...editForm, genre: e.target.value})} />
               </div>
-              <div className="input-group">
-                <label className="input-label">ברקוד (ISBN)</label>
-                <input type="text" className="input-field" placeholder="ברקוד (ISBN)" value={editForm.isbn} onChange={e => setEditForm({...editForm, isbn: e.target.value})} />
-              </div>
+
               <div className="input-group">
                 <label className="input-label">עדכון תמונת כריכה</label>
-                <input type="file" accept="image/*" onChange={e => setNewCoverFile(e.target.files[0])} style={{ fontSize: '0.9rem' }} className="input-field" />
+                <div className="flex gap-2 items-center">
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment"
+                    onChange={(e) => {
+                      if (e.target.files[0]) setNewCoverFile(e.target.files[0]);
+                    }}
+                    style={{ display: 'none' }}
+                    id="admin-cover-camera"
+                  />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      if (e.target.files[0]) setNewCoverFile(e.target.files[0]);
+                    }}
+                    style={{ display: 'none' }}
+                    id="admin-cover-gallery"
+                  />
+                  <label htmlFor="admin-cover-camera" className="btn btn-secondary hover-lift" style={{ display: 'flex', gap: '0.5rem', cursor: 'pointer', flex: 1, margin: 0, justifyContent: 'center' }}>
+                    <Camera size={18} /> צלם כריכה
+                  </label>
+                  <label htmlFor="admin-cover-gallery" className="btn btn-secondary hover-lift" style={{ display: 'flex', gap: '0.5rem', cursor: 'pointer', flex: 1, margin: 0, justifyContent: 'center' }}>
+                    <ImagePlus size={18} /> העלה תמונה
+                  </label>
+                </div>
+                {newCoverFile && <div className="text-sm mt-2 text-center" style={{ color: 'var(--primary-color)' }}>נבחרה תמונה: {newCoverFile.name}</div>}
               </div>
             </div>
             

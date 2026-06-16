@@ -17,13 +17,13 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="glass-card" style={{ borderRadius: 0, borderBottom: '2px solid var(--surface-border)', borderTop: 'none', borderLeft: 'none', borderRight: 'none', marginBottom: '2rem', padding: '1rem 0' }}>
+    <nav className="glass-card" style={{ borderRadius: 0, borderBottom: '2px solid var(--surface-border)', borderTop: 'none', borderLeft: 'none', borderRight: 'none', marginBottom: '0', padding: '1rem 0' }}>
       <div className="container flex items-center justify-between nav-container">
         <Link to="/" className="flex items-center gap-2 hover-lift">
           <div style={{ background: 'var(--primary-color)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
             <Book color="white" size={24} />
           </div>
-          <h2 style={{ margin: 0, fontSize: '1.5rem' }}>ספרייה קהילתית</h2>
+          <h2 style={{ margin: 0, fontSize: '1.5rem' }}>ספריית ניר עוז</h2>
         </Link>
         
         <div className="flex items-center gap-4 nav-links">
