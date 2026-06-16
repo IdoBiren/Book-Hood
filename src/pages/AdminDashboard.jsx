@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ShieldAlert, Trash2, Edit2, Loader2, Save, X, BookCopy, Database, Camera, ImagePlus } from 'lucide-react';
 import { getAllBooksAdmin, deleteBook, uploadBookCover, updateCatalogMetadata } from '../services/db';
+import { BOOK_GENRES } from '../utils/constants';
 
 export default function AdminDashboard() {
   const { currentUser, userProfile } = useAuth();
@@ -249,8 +250,13 @@ export default function AdminDashboard() {
                 <input type="text" className="input-field" placeholder="סופר" value={editForm.author} onChange={e => setEditForm({...editForm, author: e.target.value})} />
               </div>
               <div className="input-group">
-                <label className="input-label">ז'אנר / קטגוריה</label>
-                <input type="text" className="input-field" placeholder="ז'אנר" value={editForm.genre} onChange={e => setEditForm({...editForm, genre: e.target.value})} />
+                <label className="input-label">ז'אנר / קטגוריה (לא חובה)</label>
+                <select className="input-field" value={editForm.genre} onChange={e => setEditForm({...editForm, genre: e.target.value})}>
+                  <option value="" disabled>בחרו קטגוריה מתאימה</option>
+                  {BOOK_GENRES.map(genre => (
+                    <option key={genre} value={genre}>{genre}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="input-group">
@@ -275,11 +281,11 @@ export default function AdminDashboard() {
                     style={{ display: 'none' }}
                     id="admin-cover-gallery"
                   />
-                  <label htmlFor="admin-cover-camera" className="btn btn-secondary hover-lift" style={{ display: 'flex', gap: '0.5rem', cursor: 'pointer', flex: 1, margin: 0, justifyContent: 'center' }}>
-                    <Camera size={18} /> צלם כריכה
+                  <label htmlFor="admin-cover-camera" className="btn btn-secondary hover-lift" style={{ display: 'flex', gap: '0.5rem', cursor: 'pointer', flex: 1, margin: 0, justifyContent: 'center', padding: '0.5rem', whiteSpace: 'nowrap' }}>
+                    <Camera size={18} /> מצלמה
                   </label>
-                  <label htmlFor="admin-cover-gallery" className="btn btn-secondary hover-lift" style={{ display: 'flex', gap: '0.5rem', cursor: 'pointer', flex: 1, margin: 0, justifyContent: 'center' }}>
-                    <ImagePlus size={18} /> העלה תמונה
+                  <label htmlFor="admin-cover-gallery" className="btn btn-secondary hover-lift" style={{ display: 'flex', gap: '0.5rem', cursor: 'pointer', flex: 1, margin: 0, justifyContent: 'center', padding: '0.5rem', whiteSpace: 'nowrap' }}>
+                    <ImagePlus size={18} /> גלריה
                   </label>
                 </div>
                 {newCoverFile && <div className="text-sm mt-2 text-center" style={{ color: 'var(--primary-color)' }}>נבחרה תמונה: {newCoverFile.name}</div>}
