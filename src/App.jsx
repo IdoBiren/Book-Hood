@@ -28,39 +28,7 @@ function AppContent() {
   );
 }
 
-import { useEffect } from 'react';
-
 function App() {
-  useEffect(() => {
-    import('./firebase').then(async ({ db, hasFirebaseConfig }) => {
-      if (!hasFirebaseConfig || !db) return;
-      const { collection, getDocs, updateDoc, doc } = await import('firebase/firestore');
-      
-      try {
-        const bq = collection(db, 'books');
-        const bSnap = await getDocs(bq);
-        bSnap.forEach(d => {
-          const data = d.data();
-          if (data.ownerName && data.ownerName.toLowerCase().includes('gil')) {
-            updateDoc(doc(db, 'books', d.id), { ownerPhone: '0559568869' });
-          }
-        });
-        
-        const uq = collection(db, 'users');
-        const uSnap = await getDocs(uq);
-        uSnap.forEach(u => {
-          const data = u.data();
-          if (data.displayName && data.displayName.toLowerCase().includes('gil')) {
-            updateDoc(doc(db, 'users', u.id), { phone: '0559568869' });
-          }
-        });
-        console.log('Successfully updated GIL phone numbers!');
-      } catch (e) {
-        console.error('Failed to update GIL:', e);
-      }
-    });
-  }, []);
-
   return (
     <AuthProvider>
       <BrowserRouter>
