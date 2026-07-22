@@ -95,7 +95,7 @@ export default function Home() {
 
   const handleWhatsappClick = (owner, bookTitle, e) => {
     e.preventDefault();
-    const text = encodeURIComponent(`היי ${owner.ownerName}! 👋 ראיתי את הספר "${bookTitle}" בספריית ניר עוז וממש אשמח להשאיל אותו אם אפשר. תודה מראש! 📚✨`);
+    const text = encodeURIComponent(`היי ${owner.ownerName}! 👋 ראיתי את הספר "${bookTitle}" ב-Book-Hood וממש אשמח להשאיל אותו אם אפשר. תודה מראש! 📚✨`);
     if (!owner.ownerPhone) {
       alert(`למשתמש ${owner.ownerName} אין מספר טלפון רשום במערכת.\nההודעה מוכנה - בחלון שיפתח בוואטסאפ תוכל לחפש את ${owner.ownerName} ולשלוח אליו/אליה.`);
       window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');

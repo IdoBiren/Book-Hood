@@ -23,7 +23,7 @@ export default function Navbar() {
           <div style={{ background: 'var(--primary-color)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
             <Book color="white" size={24} />
           </div>
-          <h2 style={{ margin: 0, fontSize: '1.5rem' }}>ספריית ניר עוז</h2>
+          <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Book-Hood</h2>
         </Link>
         
         <div className="flex items-center gap-4 nav-links">
